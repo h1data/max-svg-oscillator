@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>svg loader</title>
+    <style>
+      body {
+        background: #111111;
+        color: white;
+        font-family: sans-serif;
+        font-size: 10pt;
+        overflow: hidden;
+      }
+      input[type="file"] {
+        color: white;
+      }
+      div#div-svg svg {
+        stroke: white;
+        stroke-width: 1.5px;
+        fill: none;
+        width: 200px;
+        height: 200px;
+      }
+      label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: none;
+        width: 170px;
+      }
+    </style>
+    <script>
+      var inputFile;
+      var samples = 1024;
+
+      window.onload = function() {
+        inputFile = document.getElementById('file-svg');
+        inputFile.addEventListener('change', onFileChange, false);
+      }
+
+      window.max.bindInlet('sizeinsamps', function (samps) {
+        samples = samps;
+      });
+
+      function onFileChange(e) {
+        const div = document.getElementById('div-svg');
+        const label = document.getElementById('label-svg')
+        if (inputFile.files.length == 0) return;
+        const selectedFile = inputFile.files[0];
+        if (!/.+\.svg/.test(selectedFile.name)) return;
+        div.hidden = true;
+        var fileReader = new FileReader();
+        fileReader.addEventListener('load',
+          function() {
+            while (div.hasChildNodes()) div.removeChild(div.firstChild);
+            div.innerHTML = fileReader.result;
+            const svg = document.getElementsByTagName('svg')[0];
+            let width = svg.width.baseVal.value * 0.5;
+            let height = svg.height.baseVal.value * 0.5;
+            
+            const paths = svg.getElementsByTagName('path');
+            if (paths.length > 1) console.log('multi path');
+            let path = paths[0];
+            let mul = path.getTotalLength() / samples;
+            let norm = Math.max(height, width);
+            for(let i=0; i<samples; i++) {
+              const point = path.getPointAtLength(i * mul);
+              window.max.outlet('poke', (point.x - width) / width, i, 1);
+              window.max.outlet('poke', (height - point.y) / height, i, 2);
+            }
+            div.removeAttribute('hidden');
+            label.textContent = selectedFile.name;
+            window.max.outlet('bang');
+          }
+        );
+        label.textContent = 'sampling...';
+        fileReader.readAsText(selectedFile);
+      }
+
+    </script>
+  </head>
+  <body>
+    <label id="label-svg" for="file-svg">click here to select svg file</label>
+    <div id="div-svg" hidden></div>
+    <input id="file-svg" type="file" style="display: none;" multiple="false" accept="image/svg+xml" /><br/>
+  </body>
+</html>
