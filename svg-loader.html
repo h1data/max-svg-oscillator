@@ -57,20 +57,18 @@
             const svg = document.getElementsByTagName('svg')[0];
             let width = svg.width.baseVal.value * 0.5;
             let height = svg.height.baseVal.value * 0.5;
-            
             const paths = svg.getElementsByTagName('path');
             if (paths.length > 1) console.log('multi path');
             let path = paths[0];
-            let mul = path.getTotalLength() / samples;
-            let norm = Math.max(height, width);
-            for(let i=0; i<samples; i++) {
-              const point = path.getPointAtLength(i * mul);
-              window.max.outlet('poke', (point.x - width) / width, i, 1);
-              window.max.outlet('poke', (height - point.y) / height, i, 2);
+            let mul_index = path.getTotalLength() / samples;
+            let mul_norm = 1 / Math.sqrt(width*width + height*height);
+            for (let i=0; i<samples; i++) {
+              const point = path.getPointAtLength(i * mul_index);
+              window.max.outlet('poke', (point.x - width) * mul_norm, i, 1);
+              window.max.outlet('poke', (height - point.y) * mul_norm, i, 2);
             }
             div.removeAttribute('hidden');
             label.textContent = selectedFile.name;
-            window.max.outlet('bang');
           }
         );
         label.textContent = 'sampling...';
